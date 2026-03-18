@@ -1,0 +1,65 @@
+{
+  "default_host": "10.144.9.132",
+  "models": {
+    "qwen2.5-7b-instruct": {
+      "model_path": "Qwen/Qwen2.5-7B-Instruct",
+      "port": 30006,
+      "display_name": "Qwen2.5-7B-Instruct",
+      "env_host": "SGLANG_QWEN7B_HOST"
+    },
+    "llama3.1-8b-instruct": {
+      "model_path": "meta-llama/Llama-3.1-8B-Instruct",
+      "port": 30001,
+      "display_name": "LLaMA-3.1-8B-Instruct",
+      "env_host": "SGLANG_LLAMA8B_HOST"
+    },
+    "llama3.1-70b-instruct": {
+      "model_path": "meta-llama/Llama-3.1-70B-Instruct",
+      "port": 30002,
+      "display_name": "LLaMA-3.1-70B-Instruct",
+      "env_host": "SGLANG_LLAMA70B_HOST"
+    },
+    "mistral-7b-instruct": {
+      "model_path": "mistralai/Mistral-7B-Instruct-v0.3",
+      "port": 30003,
+      "display_name": "Mistral-7B-Instruct",
+      "env_host": "SGLANG_MISTRAL_HOST"
+    },
+    "mixtral-8x22b-instruct": {
+      "model_path": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      "port": 30004,
+      "display_name": "Mixtral-8x22B-Instruct",
+      "env_host": "SGLANG_MIXTRAL_HOST"
+    },
+    "gemma2-27b-it": {
+      "model_path": "google/gemma-2-27b-it",
+      "port": 30005,
+      "display_name": "Gemma-2-27B-Instruct",
+      "env_host": "SGLANG_GEMMA_HOST"
+    },
+    "qwen2.5-3b-instruct": {
+      "model_path": "Qwen/Qwen2.5-3B-Instruct",
+      "port": 30008,
+      "display_name": "Qwen2.5-3B-Instruct",
+      "env_host": "SGLANG_QWEN3B_HOST"
+    }
+  },
+  "pool_model_keys": [
+    "qwen2.5-7b-instruct",
+    "llama3.1-8b-instruct",
+    "llama3.1-70b-instruct",
+    "mistral-7b-instruct",
+    "mixtral-8x22b-instruct",
+    "gemma2-27b-it"
+  ],
+  "pricing": {
+    "qwen2.5-7b-instruct": {"input": 0.0375, "output": 0.30},
+    "llama3.1-8b-instruct": {"input": 0.0225, "output": 0.18},
+    "llama3.1-70b-instruct": {"input": 0.11, "output": 0.88},
+    "mistral-7b-instruct": {"input": 0.025, "output": 0.20},
+    "mixtral-8x22b-instruct": {"input": 0.15, "output": 1.20},
+    "gemma2-27b-it": {"input": 0.10, "output": 0.80},
+    "qwen2.5-3b-instruct": {"input": 0.01625, "output": 0.13}
+  },
+  "default_prompt": "You are a helpful AI assistant. Please answer the question below:\n\nQuestion: {query}"
+}

@@ -1,0 +1,11 @@
+{
+  "wiki_retrieval": [{"ip_addr": "10.144.8.134", "port": "1401"}],
+  "retrieval": [{"ip_addr": "10.144.8.134", "port": "1401"}],
+  "Qwen/Qwen2.5-Math-72B-Instruct": [{"ip_addr": "10.144.8.134", "port": "1402"}],
+  "Qwen/Qwen3-32B": [{"ip_addr": "10.144.8.134", "port": "1403"}],
+  "Qwen/Qwen2.5-Math-7B-Instruct": [{"ip_addr": "10.144.8.134", "port": "1404"}],
+  "meta-llama/Llama-3.3-70B-Instruct": [{"ip_addr": "10.144.8.134", "port": "1405"}],
+  "Qwen/Qwen3-8B": [{"ip_addr": "10.144.8.134", "port": "1408"}],
+  "Qwen/Qwen2.5-Coder-32B-Instruct": [{"ip_addr": "10.144.8.134", "port": "1407"}],
+  "vllm_model_config_path": "eval_config.json"
+}
