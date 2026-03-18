@@ -378,12 +378,16 @@ def phase_explore_frames(config: PipelineConfig) -> Path:
     except ImportError:
         run_iter = runs
 
+    repo_root = Path(__file__).resolve().parent.parent
+    eval_script_path = (repo_root / config.eval_script).resolve() if not Path(config.eval_script).is_absolute() else Path(config.eval_script).resolve()
+    eval_script_dir = str(eval_script_path.parent)
+
     for stage, model_id in run_iter:
         stage_dir = explore_dir / stage / model_id
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         cmd = [
-            sys.executable, str(config.eval_script),
+            sys.executable, str(eval_script_path),
             "--example_file_path", dataset_file,
             "--output_dir", str(stage_dir),
             "--model_config", config.model_config,
@@ -416,9 +420,7 @@ def phase_explore_frames(config: PipelineConfig) -> Path:
         if hasattr(run_iter, "set_postfix_str"):
             run_iter.set_postfix_str(f"{stage}/{model_id}")
         logger.info(f"Exploring {stage}/{model_id}...")
-        eval_script_dir = str(Path(config.eval_script).parent)
         env = os.environ.copy()
-        repo_root = Path(__file__).resolve().parent.parent
         env["REPO_PATH"] = str(repo_root / "orchestration")
         existing_pythonpath = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = str(repo_root) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
@@ -1029,13 +1031,16 @@ def phase_test_frames(
 
     strategies = [config.routing_strategy]
     results = {}
+    repo_root = Path(__file__).resolve().parent.parent
+    eval_script_path = (repo_root / config.eval_script).resolve() if not Path(config.eval_script).is_absolute() else Path(config.eval_script).resolve()
+    eval_script_dir = str(eval_script_path.parent)
 
     for strategy in strategies:
         test_output = Path(config.output_dir) / "test" / f"frames_{strategy}"
         test_output.mkdir(parents=True, exist_ok=True)
 
         cmd = [
-            sys.executable, str(config.eval_script),
+            sys.executable, str(eval_script_path),
             "--example_file_path", test_samples,
             "--output_dir", str(test_output),
             "--model_config", config.model_config,
@@ -1061,7 +1066,7 @@ def phase_test_frames(
         env["PYTHONPATH"] = str(repo_root) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
 
         result = subprocess.run(
-            cmd, cwd=str(Path(config.eval_script).parent), env=env,
+            cmd, cwd=eval_script_dir, env=env,
             capture_output=False, text=True, timeout=14400,
         )
 
