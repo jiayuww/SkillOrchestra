@@ -28,6 +28,7 @@ Thumbs.db
 # Environment / secrets
 .env
 .env.*
+!.env.example
 .venv
 
 # Output / logs
