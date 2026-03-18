@@ -13,7 +13,10 @@ from ..core.handbook import SkillHandbook
 from ..core.traces import ExplorationBundle, ExecutionTrace
 from ..core.types import Skill, SkillProvenance
 from ..llm.client import LLMClient
-from .prompts import SKILL_DISCOVERY_PROMPT, AGENT_ORCHESTRATION_DISCOVERY_PROMPT
+from skillorchestra.prompts.learning import (
+    SKILL_DISCOVERY_PROMPT,
+    AGENT_ORCHESTRATION_DISCOVERY_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 

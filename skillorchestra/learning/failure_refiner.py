@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from ..llm.client import LLMClient
-from .prompts import FAILURE_DRIVEN_REFINEMENT_PROMPT
+from skillorchestra.prompts.learning import FAILURE_DRIVEN_REFINEMENT_PROMPT
 
 logger = logging.getLogger(__name__)
 

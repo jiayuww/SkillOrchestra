@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from ..core.handbook import SkillHandbook
 from ..core.types import BetaCompetence, Skill, SkillProvenance
 from ..llm.client import LLMClient
-from .prompts import (
+from skillorchestra.prompts.learning import (
     AGENT_ORCHESTRATION_MERGE_PROMPT,
     AGENT_ORCHESTRATION_SPLIT_PROMPT,
     SKILL_MERGE_PROMPT,

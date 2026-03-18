@@ -19,7 +19,11 @@ from ..core.handbook import SkillHandbook
 from ..core.traces import ExplorationBundle, ExecutionTrace
 from ..core.types import AgentProfile, CostStats, ModeMetadata, RoutingInsight
 from ..llm.client import LLMClient
-from .prompts import SKILL_IDENTIFICATION_PROMPT, MODE_INSIGHT_PROMPT, PROFILE_SUMMARY_PROMPT
+from skillorchestra.prompts.learning import (
+    SKILL_IDENTIFICATION_PROMPT,
+    MODE_INSIGHT_PROMPT,
+    PROFILE_SUMMARY_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
