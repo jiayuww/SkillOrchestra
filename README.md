@@ -86,11 +86,12 @@ python scripts/pipeline.py model-routing \
 ### Agent Orchestration
 
 ```bash
-# Full pipeline
+# Full pipeline: explore → learn → select → test
 python scripts/pipeline.py frames \
     --output-dir output/frames \
     --eval-script orchestration/eval_frames.py \
     --test-samples data/frames_test.jsonl \
+    --phases explore,learn,select,test \
     --exploration-samples 40 \
     --train-samples 20 \
     --val-samples 20
