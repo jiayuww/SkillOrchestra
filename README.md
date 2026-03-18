@@ -107,6 +107,22 @@ Use `--phases explore`, `--phases learn,select`, etc. to run subsets.
 
 ---
 
+## Customization
+
+- **Model pool (model routing):** Edit `config/pool_config.json` — add/remove models, set ports, pricing, and host env vars. Use `--pool-models` to override at runtime.
+- **Agent mapping:** Edit `config/models.py` — map agent IDs to your model endpoints.
+- **Model endpoints:** Edit `config/eval_config.json` — set `ip_addr` and `port` for each model when using remote/vLLM servers.
+- **Learning:** Use `--llm-model`, `--skill-id-model`, `--max-refinement-rounds`, `--max-merge-credits`, etc. to tune the learning pipeline.
+- **Deployment:** Use `--lambda-cost` for performance-cost trade-off; `--routing-strategy` for routing behavior (e.g. `weighted_avg`, `analyze_router_decides`).
+
+---
+
+## License
+
+[Apache 2.0](LICENSE)
+
+---
+
 ## Citation
 
 If you find this work helpful, please consider giving a ⭐ and citing our paper 😊
