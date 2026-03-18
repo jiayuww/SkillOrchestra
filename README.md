@@ -138,3 +138,11 @@ If you find this work helpful, please consider giving a ⭐ and citing our paper
       url={https://arxiv.org/abs/2602.19672}, 
 }
 ```
+
+---
+
+## Contact
+
+We are here to help! Any questions? Please open an issue and cc [Jiayu Wang](mailto:milawang@cs.wisc.edu) (milawang@cs.wisc.edu).
+
+
