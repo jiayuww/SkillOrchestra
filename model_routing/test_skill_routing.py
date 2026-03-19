@@ -471,25 +471,15 @@ def route_by_weighted_avg(
 # ---------------------------------------------------------------------------
 
 def load_dataset(name: str, max_samples: Optional[int] = None) -> List[Dict]:
-    """Load QA dataset from HuggingFace.
+    """Load QA dataset from HuggingFace. Uses shared loader with pyarrow fallback."""
+    import ast
+    from model_routing.load_qa_dataset import load_qa_dataset_raw
 
-    Follows the same convention as explore.py:
-      - validation datasets → MilaWang/qa_validation_qwen / <name>
-      - test datasets       → MilaWang/qa_test_qwen / <name>
-    """
-    from datasets import load_dataset as hf_load
-
-    is_validation = "validation" in name
-    source = "MilaWang/qa_validation_qwen" if is_validation else "MilaWang/qa_test_qwen"
-    logger.info(f"Loading {source}/{name} from HuggingFace...")
-    ds = hf_load(source, name, split="test")
+    rows = load_qa_dataset_raw(name, max_samples)
     samples = []
-    for i, row in enumerate(ds):
-        if max_samples and i >= max_samples:
-            break
-        gt = row.get("golden_answers", row.get("ground_truths", row.get("answer", [])))
+    for i, row in enumerate(rows):
+        gt = row.get("golden_answers", [])
         if isinstance(gt, str):
-            import ast
             try:
                 gt = ast.literal_eval(gt)
             except (ValueError, SyntaxError):
@@ -502,7 +492,6 @@ def load_dataset(name: str, max_samples: Optional[int] = None) -> List[Dict]:
             "question": row["question"],
             "ground_truths": gt,
         })
-    logger.info(f"Loaded {len(samples)} samples")
     return samples
 
 
@@ -526,7 +515,6 @@ def load_dataset_from_jsonl(path: str) -> List[Dict]:
             })
     logger.info(f"Loaded {len(samples)} samples from {path}")
     return samples
-å
 
 # ---------------------------------------------------------------------------
 # Main inference loop
