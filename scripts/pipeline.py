@@ -1297,7 +1297,7 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
     selected: Optional[CandidateHandbook] = None
     if not test_only_with_handbook:
         if "learn" in config.phases:
-            handbook = phase_learn(config, train_bundles, store)
+            handbook = phase_learn(config, train_bundles + val_bundles, store)
             results["skills_learned"] = handbook.num_skills
             results["agents_profiled"] = len(handbook.agent_profiles)
         else:
@@ -1313,7 +1313,7 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
                     )
                 if needs_bundles:
                     logger.warning("No learned handbook found. Running manual learning.")
-                    handbook = phase_learn(config, train_bundles, store)
+                    handbook = phase_learn(config, train_bundles + val_bundles, store)
                 else:
                     raise RuntimeError(
                         "No learned handbook found. Run with --phases learn first."
