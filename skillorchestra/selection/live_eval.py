@@ -95,6 +95,12 @@ class LiveEvaluator:
                 raise FileNotFoundError(
                     "eval_frames.py not found. Set config.eval_script."
                 )
+        else:
+            # Resolve relative paths to absolute (avoids cwd + relative path -> wrong path)
+            p = Path(self.config.eval_script)
+            if not p.is_absolute():
+                repo_root = Path(__file__).resolve().parent.parent.parent
+                self.config.eval_script = str((repo_root / self.config.eval_script).resolve())
 
     def evaluate_candidate(
         self,
