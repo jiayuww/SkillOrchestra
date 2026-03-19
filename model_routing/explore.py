@@ -38,19 +38,9 @@ logger = logging.getLogger("explore")
 
 
 def load_dataset_samples(dataset_name: str, max_samples: Optional[int] = None) -> List[Dict]:
-    """Load dataset from HuggingFace."""
-    from datasets import load_dataset
-
-    is_validation = "validation" in dataset_name
-    source = "MilaWang/qa_validation_qwen" if is_validation else "MilaWang/qa_test_qwen"
-
-    logger.info(f"Loading {source}/{dataset_name} from HuggingFace...")
-    ds = load_dataset(source, dataset_name, split="test")
-    samples = list(ds)
-    if max_samples:
-        samples = samples[:max_samples]
-    logger.info(f"Loaded {len(samples)} samples")
-    return samples
+    """Load dataset from HuggingFace. Uses shared loader with pyarrow fallback."""
+    from model_routing.load_qa_dataset import load_qa_dataset_raw
+    return load_qa_dataset_raw(dataset_name, max_samples)
 
 
 def process_sample(
