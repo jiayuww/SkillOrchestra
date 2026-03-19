@@ -7,7 +7,7 @@ All environment creation and setup scripts live here.
 | `run.sh` | Unified entry: run all or individual setups |
 | `env.sh` | Create `so_env` (pipeline) and `sglang_env` (SGLang) |
 | `retriever.sh` | Create `retriever` env (Qwen3-Embedding, FAISS) |
-| `agent_orchestration.sh` | Full agent eval setup (FRAMES, HLE) |
+| `agent_orchestration.sh` | Full agent eval setups |
 
 ## Quick start
 
