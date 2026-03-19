@@ -1,5 +1,5 @@
 """
-Stage-router-compatible handbook and routing for eval_frames.
+Adapter for orchestration eval script.
 
 Provides: StageSkillHandbook (load from JSON), parse_skill_analysis,
 get_routing_strategy. Compatible with JSON produced by to_stage_router.
