@@ -893,6 +893,34 @@ def main():
     elapsed = time.time() - t0
     n = len(results)
 
+    # Aggregate costs and tokens from all results
+    total_cost = sum(r.get("costs", {}).get("total", 0.0) for r in results)
+    total_router_pt = sum(r.get("tokens", {}).get("router_prompt", 0) for r in results)
+    total_router_ct = sum(r.get("tokens", {}).get("router_completion", 0) for r in results)
+    total_pool_pt = sum(r.get("tokens", {}).get("pool_prompt", 0) for r in results)
+    total_pool_ct = sum(r.get("tokens", {}).get("pool_completion", 0) for r in results)
+    costs_per_sample = [r.get("costs", {}).get("total", 0.0) for r in results]
+
+    # Aggregate per_model_costs across samples (calls, tokens, costs)
+    per_model_agg: Dict[str, Dict[str, Any]] = {}
+    for r in results:
+        for model_key, mc in r.get("per_model_costs", {}).items():
+            if model_key not in per_model_agg:
+                per_model_agg[model_key] = {
+                    "calls": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "input_cost": 0.0,
+                    "output_cost": 0.0,
+                    "total_cost": 0.0,
+                }
+            per_model_agg[model_key]["calls"] += mc.get("calls", 0)
+            per_model_agg[model_key]["prompt_tokens"] += mc.get("prompt_tokens", 0)
+            per_model_agg[model_key]["completion_tokens"] += mc.get("completion_tokens", 0)
+            per_model_agg[model_key]["input_cost"] += mc.get("input_cost", 0.0)
+            per_model_agg[model_key]["output_cost"] += mc.get("output_cost", 0.0)
+            per_model_agg[model_key]["total_cost"] += mc.get("total_cost", 0.0)
+
     # Save results
     inf_path = out_dir / "inference_results.jsonl"
     with open(inf_path, "w") as f:
@@ -911,11 +939,33 @@ def main():
         "f1": round(total_f1 / n, 4) if n else 0,
         "elapsed_seconds": round(elapsed, 1),
         "timestamp": datetime.now().isoformat(),
+        # Aggregate cost & tokens
+        "total_cost_usd": round(total_cost, 6),
+        "avg_cost_per_sample_usd": round(total_cost / n, 6) if n else 0,
+        "min_cost_per_sample_usd": round(min(costs_per_sample), 6) if costs_per_sample else 0,
+        "max_cost_per_sample_usd": round(max(costs_per_sample), 6) if costs_per_sample else 0,
+        "tokens": {
+            "router_prompt": total_router_pt,
+            "router_completion": total_router_ct,
+            "pool_prompt": total_pool_pt,
+            "pool_completion": total_pool_ct,
+            "total": total_router_pt + total_router_ct + total_pool_pt + total_pool_ct,
+            "avg_per_sample": round((total_router_pt + total_router_ct + total_pool_pt + total_pool_ct) / n, 1) if n else 0,
+        },
+        # Per-model: aggregated calls, tokens, costs across all samples
+        "per_model_costs": {
+            k: {kk: round(vv, 6) if isinstance(vv, float) else vv
+                for kk, vv in v.items()}
+            for k, v in per_model_agg.items()
+        },
     }
     with open(out_dir / "summary.json", "w") as f:
         json.dump(summary, f, indent=2)
 
-    logger.info(f"\nResults: EM={summary['exact_match']:.4f} F1={summary['f1']:.4f} ({n} samples, {elapsed:.0f}s)")
+    logger.info(
+        f"\nResults: EM={summary['exact_match']:.4f} F1={summary['f1']:.4f} "
+        f"cost=${summary['total_cost_usd']:.4f} ({n} samples, {elapsed:.0f}s)"
+    )
     logger.info(f"Saved to {out_dir}")
 
 
