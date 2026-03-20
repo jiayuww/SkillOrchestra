@@ -117,7 +117,6 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from config import resolve_model
 from config.pipeline import (
-    _REPO_DIR,
     DATA_DIR,
     DEFAULT_EVAL_SCRIPT,
     DEFAULT_FRAMES_POOL_MODELS,
@@ -159,6 +158,30 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("pipeline")
+
+# File handler for pipeline.log (set by _setup_log_file when output_dir is known)
+_log_file_handler: Optional[logging.FileHandler] = None
+
+
+def _setup_log_file(output_dir: Path) -> None:
+    """Add a FileHandler to capture all logs to output_dir/pipeline.log."""
+    global _log_file_handler
+    if _log_file_handler is not None:
+        return
+    log_path = Path(output_dir) / "pipeline.log"
+    try:
+        # Write run separator first (before handler adds its first line)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*70}\nPipeline run {datetime.now().isoformat()}\n{'='*70}\n")
+        _log_file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
+        _log_file_handler.setLevel(logging.DEBUG)
+        _log_file_handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
+        )
+        logging.getLogger().addHandler(_log_file_handler)
+        logger.info(f"Logging to {log_path}")
+    except OSError as e:
+        logger.warning(f"Could not create log file {log_path}: {e}")
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -942,8 +965,9 @@ def phase_test_model_routing(
     test_output = Path(config.output_dir).resolve() / "test" / "results"
     test_output.mkdir(parents=True, exist_ok=True)
 
+    repo_root = Path(__file__).resolve().parent.parent
     cmd = [
-        sys.executable, str(_REPO_DIR / "model_routing" / "test_skill_routing.py"),
+        sys.executable, str(repo_root / "model_routing" / "test_skill_routing.py"),
         "--handbook", str(handbook_path),
         "--dataset", test_dataset,
         "--output-dir", str(test_output),
@@ -960,11 +984,11 @@ def phase_test_model_routing(
 
     env = os.environ.copy()
     existing_pythonpath = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = str(_REPO_DIR) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+    env["PYTHONPATH"] = str(repo_root) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
 
     result = subprocess.run(
         cmd,
-        cwd=str(_REPO_DIR),
+        cwd=str(repo_root),
         env=env,
         capture_output=True, text=True, timeout=7200,
     )
@@ -1199,6 +1223,8 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
                     shutil.copytree(src, dst, dirs_exist_ok=True)
                     logger.info(f"Carried forward {Path(src).name} from previous run")
 
+    _setup_log_file(output_dir)
+
     store = HandbookStore(output_dir)
     results: Dict[str, Any] = {
         "task_type": config.task_type,
@@ -1406,6 +1432,7 @@ def _copy_results_to_output(
             _copy_dir(run_dir / "learning", "learning")
     _copy_file(run_dir / "pipeline_summary.json", "pipeline_summary.json")
     _copy_file(run_dir / "pipeline_config.json", "pipeline_config.json")
+    _copy_file(run_dir / "pipeline.log", "pipeline.log")
     logger.info(f"Results available at {results_dir}")
 
 
