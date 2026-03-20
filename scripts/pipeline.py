@@ -117,6 +117,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from config import resolve_model
 from config.pipeline import (
+    _REPO_DIR,
     DATA_DIR,
     DEFAULT_EVAL_SCRIPT,
     DEFAULT_FRAMES_POOL_MODELS,
