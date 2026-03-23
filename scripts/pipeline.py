@@ -1209,6 +1209,35 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
         output_dir.mkdir(parents=True, exist_ok=True)
         config.output_dir = str(output_dir)
 
+    _repo_root = Path(__file__).resolve().parent.parent
+    # FRAMES: keep exploration + eval paths inside the repo / run dir (no stray relative-path failures)
+    if config.task_type == "frames":
+        if config.eval_script:
+            ep = Path(config.eval_script)
+            if not ep.is_absolute():
+                cand = (_repo_root / ep).resolve()
+                if cand.is_file():
+                    config.eval_script = str(cand)
+        if config.model_config:
+            mp = Path(config.model_config)
+            if not mp.is_absolute():
+                cand = (_repo_root / mp).resolve()
+                if cand.is_file():
+                    config.model_config = str(cand)
+        if config.test_samples:
+            tp = Path(config.test_samples)
+            if not tp.is_absolute():
+                cand = (_repo_root / tp).resolve()
+                if cand.is_file():
+                    config.test_samples = str(cand)
+        exp_samples = output_dir / "exploration" / "samples.jsonl"
+        if not config.samples_path and exp_samples.is_file():
+            config.samples_path = str(exp_samples.resolve())
+            logger.info(
+                "FRAMES: using samples_path under run dir (bundles match local exploration): %s",
+                config.samples_path,
+            )
+
     # If resuming (e.g. --phases test), copy learned/selected from latest run
     base_output_dir = output_dir.parent
     latest_link = base_output_dir / "latest"
@@ -1258,6 +1287,16 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
                 existing = find_rsl_results(RSL_RESULTS_DIR, config.dataset)
                 if existing:
                     exploration_path = existing
+            elif config.task_type == "frames":
+                local_explore = Path(config.output_dir) / "exploration"
+                if local_explore.is_dir():
+                    exploration_path = local_explore
+                    logger.info(
+                        "Using exploration under output dir (results stay in this run): %s",
+                        exploration_path,
+                    )
+                elif FRAMES_EXPLORATION_DIR.exists():
+                    exploration_path = FRAMES_EXPLORATION_DIR
             elif FRAMES_EXPLORATION_DIR.exists():
                 exploration_path = FRAMES_EXPLORATION_DIR
 
