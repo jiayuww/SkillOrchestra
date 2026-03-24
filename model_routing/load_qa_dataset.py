@@ -54,9 +54,10 @@ def load_qa_dataset_raw(
                 ga = ga.tolist()
             elif not isinstance(ga, list):
                 ga = [ga] if ga is not None else []
+            question = _extract_question(row)
             samples.append({
                 "id": str(row.get("id", "")),
-                "question": str(row.get("question", "")),
+                "question": question,
                 "golden_answers": ga,
             })
     except TypeError as e:
@@ -98,9 +99,10 @@ def _load_qa_via_parquet(source: str, dataset_name: str) -> List[Dict[str, Any]]
             ga = ga.tolist()
         elif not isinstance(ga, list):
             ga = [ga] if ga is not None else []
+        question = _extract_question(row)
         samples.append({
             "id": str(row.get("id", "")),
-            "question": str(row.get("question", "")),
+            "question": question,
             "golden_answers": ga,
         })
     return samples
@@ -130,9 +132,30 @@ def _load_math_via_parquet(source: str) -> List[Dict[str, Any]]:
             ga = ga.tolist()
         elif not isinstance(ga, list):
             ga = [ga] if ga is not None else []
+        question = _extract_question(row)
         samples.append({
             "id": str(row.get("id", "")),
-            "question": str(row.get("question", "")),
+            "question": question,
             "golden_answers": ga,
         })
     return samples
+
+
+def _extract_question(row: Any) -> str:
+    """Normalize question text while avoiding QA prompt contamination."""
+    # Handles HF dict rows and pandas Series rows.
+    question = str(row.get("question", "") or "").strip()
+    if question:
+        return question
+
+    # Math datasets commonly use "problem".
+    problem = str(row.get("problem", "") or "").strip()
+    if problem:
+        return problem
+
+    # Last-resort fallback only when neither canonical field exists.
+    prompt = str(row.get("prompt", "") or "").strip()
+    if prompt:
+        return prompt
+
+    return ""
