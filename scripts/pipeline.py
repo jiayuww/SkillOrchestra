@@ -948,12 +948,24 @@ def phase_test_model_routing(
     logger.info("Phase 3: Testing (Model Routing)")
     logger.info("=" * 60)
 
+    def infer_test_dataset(train_ds: str) -> Optional[str]:
+        # QA mapping: *_validation_qwen -> *_test_qwen
+        if "_validation_" in train_ds:
+            return train_ds.replace("_validation_", "_test_")
+        # Math mappings
+        if train_ds == "math500-validation":
+            return "math500-test"
+        if train_ds == "amc-validation-22":
+            return "amc-test-23"
+        if "-validation" in train_ds:
+            return train_ds.replace("-validation", "-test")
+        return None
+
     test_dataset = config.test_dataset
     if not test_dataset:
         train_ds = config.dataset
-        if "_validation_" in train_ds:
-            test_dataset = train_ds.replace("_validation_", "_test_")
-        else:
+        test_dataset = infer_test_dataset(train_ds)
+        if not test_dataset:
             logger.warning("No test dataset specified and cannot infer from training dataset")
             return {"status": "skipped", "reason": "no test dataset"}
 
