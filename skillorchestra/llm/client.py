@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -253,20 +254,12 @@ class LLMClient:
         json_prompt = prompt + "\n\nRespond with valid JSON only, no markdown."
         response = self.complete(json_prompt, system_message=system_message, **kwargs)
 
-        content = response.content.strip()
-        if content.startswith("```json"):
-            content = content[7:]
-        elif content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
-        content = content.strip()
-
         try:
-            data = json.loads(content)
+            data = self._parse_json_content(response.content or "")
             return response_model(**data)
         except (json.JSONDecodeError, Exception) as exc:
-            logger.error(f"Structured parse failed: {exc}\nContent: {content[:500]}")
+            content_preview = (response.content or "").strip()[:500]
+            logger.error(f"Structured parse failed: {exc}\nContent: {content_preview}")
             raise ValueError(f"LLM response is not valid JSON: {exc}") from exc
 
     def get_usage_stats(self) -> Dict[str, Any]:
@@ -275,6 +268,81 @@ class LLMClient:
             "total_prompt_tokens": self.total_prompt_tokens,
             "total_completion_tokens": self.total_completion_tokens,
         }
+
+    @staticmethod
+    def _parse_json_content(raw_content: str) -> Any:
+        """Parse JSON robustly from model output with optional wrapper text."""
+        cleaned = LLMClient._strip_wrapper_text(raw_content)
+
+        # Fast path: already pure JSON.
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback: locate balanced JSON object/array candidates in the text.
+        for candidate in LLMClient._extract_json_candidates(cleaned):
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+
+        raise json.JSONDecodeError("No valid JSON object found in response", cleaned, 0)
+
+    @staticmethod
+    def _strip_wrapper_text(content: str) -> str:
+        """Remove common wrappers (markdown fences, think tags) around JSON."""
+        cleaned = content.strip()
+
+        # Remove markdown code fences.
+        cleaned = re.sub(r"^\s*```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```\s*$", "", cleaned)
+
+        # Remove full <think>...</think> blocks.
+        cleaned = re.sub(r"<think>[\s\S]*?</think>", "", cleaned, flags=re.IGNORECASE)
+
+        # If model emitted an unterminated leading think block, drop everything
+        # before the first JSON-like token.
+        first_obj = cleaned.find("{")
+        first_arr = cleaned.find("[")
+        starts = [i for i in [first_obj, first_arr] if i != -1]
+        if starts:
+            cleaned = cleaned[min(starts):]
+
+        return cleaned.strip()
+
+    @staticmethod
+    def _extract_json_candidates(text: str) -> List[str]:
+        """Extract balanced {...} / [...] candidates from arbitrary text."""
+        candidates: List[str] = []
+        for opener, closer in [("{", "}"), ("[", "]")]:
+            start = text.find(opener)
+            while start != -1:
+                depth = 0
+                in_str = False
+                esc = False
+                for i in range(start, len(text)):
+                    ch = text[i]
+                    if in_str:
+                        if esc:
+                            esc = False
+                        elif ch == "\\":
+                            esc = True
+                        elif ch == '"':
+                            in_str = False
+                        continue
+
+                    if ch == '"':
+                        in_str = True
+                    elif ch == opener:
+                        depth += 1
+                    elif ch == closer:
+                        depth -= 1
+                        if depth == 0:
+                            candidates.append(text[start : i + 1])
+                            break
+                start = text.find(opener, start + 1)
+        return candidates
 
     # ------------------------------------------------------------------
     # Internal
