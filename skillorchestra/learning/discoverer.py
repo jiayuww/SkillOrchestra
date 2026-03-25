@@ -96,19 +96,6 @@ class SkillDiscoverer:
         use_agent_orchestration = prompt_type == "agent_orchestration"
 
         for mode in target_modes:
-            if use_agent_orchestration:
-                problems_text = self._format_problems_agent_orchestration(bundles, mode)
-                prompt = AGENT_ORCHESTRATION_DISCOVERY_PROMPT.format(sample_problems=problems_text)
-            else:
-                problems_text = self._format_problems(bundles, mode)
-                contrastive_text = self._format_contrastive_evidence(bundles, mode)
-                existing_skills = self._format_existing_skills(handbook, mode)
-                prompt = SKILL_DISCOVERY_PROMPT.format(
-                    sample_problems=problems_text,
-                    contrastive_evidence=contrastive_text or "(no contrastive pairs -- all models agreed)",
-                    existing_skills=existing_skills or "(none yet)",
-                )
-
             logger.info(
                 f"  Mode '{mode}': {len(bundles)} queries, "
                 f"generating taxonomy ({prompt_type})..."
@@ -116,19 +103,39 @@ class SkillDiscoverer:
 
             self.llm.set_role("skill_discoverer")
             output = None
-            for attempt in range(3):
-                try:
-                    output = self.llm.complete_structured(
-                        prompt=prompt,
-                        response_model=SkillDiscoveryOutput,
-                    )
+            bundle_sizes = self._progressive_bundle_sizes(len(bundles))
+            for size_idx, bundle_count in enumerate(bundle_sizes):
+                cur_bundles = bundles[:bundle_count]
+                prompt = self._build_discovery_prompt(
+                    cur_bundles, mode, handbook, use_agent_orchestration
+                )
+                logger.info(
+                    f"  Mode '{mode}': discovery prompt uses {bundle_count}/{len(bundles)} queries"
+                )
+                for attempt in range(3):
+                    try:
+                        output = self.llm.complete_structured(
+                            prompt=prompt,
+                            response_model=SkillDiscoveryOutput,
+                        )
+                        break
+                    except Exception as exc:
+                        logger.warning(
+                            f"Skill discovery attempt {attempt + 1}/3 failed for mode {mode} "
+                            f"(queries={bundle_count}): {exc}"
+                        )
+                        # If prompt is too long, immediately retry with fewer bundles.
+                        if self._is_context_length_error(exc) and size_idx < len(bundle_sizes) - 1:
+                            next_count = bundle_sizes[size_idx + 1]
+                            logger.warning(
+                                f"Context limit hit for mode {mode}; reducing discovery samples "
+                                f"from {bundle_count} to {next_count} and retrying."
+                            )
+                            break
+                        if attempt == 2 and size_idx == len(bundle_sizes) - 1:
+                            logger.error(f"Skill discovery failed for mode {mode}: {exc}")
+                if output is not None:
                     break
-                except Exception as exc:
-                    logger.warning(
-                        f"Skill discovery attempt {attempt + 1}/3 failed for mode {mode}: {exc}"
-                    )
-                    if attempt == 2:
-                        logger.error(f"Skill discovery failed for mode {mode}: {exc}")
             if output is None:
                 continue
 
@@ -169,6 +176,55 @@ class SkillDiscoverer:
 
         logger.info(f"Discovered {len(new_skills)} skills across {len(target_modes)} modes")
         return new_skills
+
+    def _build_discovery_prompt(
+        self,
+        bundles: List[ExplorationBundle],
+        mode: str,
+        handbook: SkillHandbook,
+        use_agent_orchestration: bool,
+    ) -> str:
+        if use_agent_orchestration:
+            problems_text = self._format_problems_agent_orchestration(bundles, mode)
+            return AGENT_ORCHESTRATION_DISCOVERY_PROMPT.format(sample_problems=problems_text)
+
+        problems_text = self._format_problems(bundles, mode)
+        contrastive_text = self._format_contrastive_evidence(bundles, mode)
+        existing_skills = self._format_existing_skills(handbook, mode)
+        return SKILL_DISCOVERY_PROMPT.format(
+            sample_problems=problems_text,
+            contrastive_evidence=contrastive_text or "(no contrastive pairs -- all models agreed)",
+            existing_skills=existing_skills or "(none yet)",
+        )
+
+    @staticmethod
+    def _is_context_length_error(exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return (
+            "maximum context length" in msg
+            or "requested token count exceeds" in msg
+            or "context length" in msg
+            or "too many tokens" in msg
+        )
+
+    @staticmethod
+    def _progressive_bundle_sizes(total: int) -> List[int]:
+        """Return decreasing unique bundle counts for adaptive prompt shrink."""
+        if total <= 1:
+            return [total]
+        candidates = [
+            total,
+            max(1, int(total * 0.75)),
+            max(1, int(total * 0.5)),
+            max(1, int(total * 0.35)),
+            max(1, int(total * 0.2)),
+            1,
+        ]
+        dedup: List[int] = []
+        for c in candidates:
+            if c not in dedup:
+                dedup.append(c)
+        return dedup
 
     # ------------------------------------------------------------------
     # Formatting helpers
